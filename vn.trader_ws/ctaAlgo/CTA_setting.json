@@ -1,0 +1,8 @@
+[
+    {
+        "name": "pair trading",
+        "className": "PairTradingDemo",
+        "author": "Vinson Zheng",
+        "vtSymbols": [ "cu1705", "rb1705" ]
+    }
+]
