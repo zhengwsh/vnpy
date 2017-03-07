@@ -3,6 +3,6 @@
         "name": "pair trading",
         "className": "PairTradingDemo",
         "author": "Vinson Zheng",
-        "vtSymbols": [ "cu1705", "rb1705" ]
+        "vtSymbols": [ "ag1712", "cu1704" ]
     }
 ]

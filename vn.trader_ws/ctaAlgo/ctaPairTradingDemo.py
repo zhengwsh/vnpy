@@ -22,8 +22,10 @@ class PairTradingDemo(CtaTemplate):
     window = 60  # 滚动窗口
 
     # 策略变量
-    bar = None
-    barMinute = EMPTY_STRING
+    bar_a = None
+    bar_b = None
+    barMinute_a = EMPTY_STRING
+    barMinute_b = EMPTY_STRING
     counter = 0    # 每日开盘前将计数器清零
     up_cross_up_limit = False
     down_cross_down_limit = False
@@ -90,43 +92,79 @@ class PairTradingDemo(CtaTemplate):
     #----------------------------------------------------------------------
     def onTick(self, tick):
         """收到行情TICK推送（必须由用户继承实现）"""
-        #print 'tickSymbol:'+tick.vtSymbol+' tickDateTime:'+tick.date+' '+tick.time+' tickClose:'+str(tick.lastPrice)
+        print 'tickSymbol:'+tick.vtSymbol+' tickDateTime:'+tick.date+' '+tick.time+' tickClose:'+str(tick.lastPrice)
 
         # 计算分钟K线
         tickMinute = tick.datetime.minute
+
+        if tick.vtSymbol == self.vtSymbols[0]:
+            if tickMinute != self.barMinute_a:    
+                if self.bar_a:
+                    self.onBar(self.bar_a)
+                
+                bar_a = CtaBarData()              
+                bar_a.vtSymbol = tick.vtSymbol
+                bar_a.symbol = tick.symbol
+                bar_a.exchange = tick.exchange
+                
+                bar_a.open = tick.lastPrice
+                bar_a.high = tick.lastPrice
+                bar_a.low = tick.lastPrice
+                bar_a.close = tick.lastPrice
+                
+                bar_a.date = tick.date
+                bar_a.time = tick.time
+                bar_a.datetime = tick.datetime    # K线的时间设为第一个Tick的时间
+                
+                # 实盘中用不到的数据可以选择不算，从而加快速度
+                #bar_a.volume = tick.volume
+                #bar_a.openInterest = tick.openInterest
+                
+                self.bar_a = bar_a                  # 这种写法为了减少一层访问，加快速度
+                self.barMinute_a = tickMinute     # 更新当前的分钟
+                
+            else:                               # 否则继续累加新的K线
+                bar_a = self.bar_a                  # 写法同样为了加快速度
+                
+                bar_a.high = max(bar_a.high, tick.lastPrice)
+                bar_a.low = min(bar_a.low, tick.lastPrice)
+                bar_a.close = tick.lastPrice
         
-        if tickMinute != self.barMinute:    
-            if self.bar:
-                self.onBar(self.bar)
-            
-            bar = CtaBarData()              
-            bar.vtSymbol = tick.vtSymbol
-            bar.symbol = tick.symbol
-            bar.exchange = tick.exchange
-            
-            bar.open = tick.lastPrice
-            bar.high = tick.lastPrice
-            bar.low = tick.lastPrice
-            bar.close = tick.lastPrice
-            
-            bar.date = tick.date
-            bar.time = tick.time
-            bar.datetime = tick.datetime    # K线的时间设为第一个Tick的时间
-            
-            # 实盘中用不到的数据可以选择不算，从而加快速度
-            #bar.volume = tick.volume
-            #bar.openInterest = tick.openInterest
-            
-            self.bar = bar                  # 这种写法为了减少一层访问，加快速度
-            self.barMinute = tickMinute     # 更新当前的分钟
-            
-        else:                               # 否则继续累加新的K线
-            bar = self.bar                  # 写法同样为了加快速度
-            
-            bar.high = max(bar.high, tick.lastPrice)
-            bar.low = min(bar.low, tick.lastPrice)
-            bar.close = tick.lastPrice
-        
+        elif tick.vtSymbol == self.vtSymbols[1]:
+            if tickMinute != self.barMinute_b:    
+                if self.bar_b:
+                    self.onBar(self.bar_b)
+                
+                bar_b = CtaBarData()              
+                bar_b.vtSymbol = tick.vtSymbol
+                bar_b.symbol = tick.symbol
+                bar_b.exchange = tick.exchange
+                
+                bar_b.open = tick.lastPrice
+                bar_b.high = tick.lastPrice
+                bar_b.low = tick.lastPrice
+                bar_b.close = tick.lastPrice
+                
+                bar_b.date = tick.date
+                bar_b.time = tick.time
+                bar_b.datetime = tick.datetime    # K线的时间设为第一个Tick的时间
+                
+                # 实盘中用不到的数据可以选择不算，从而加快速度
+                #bar_b.volume = tick.volume
+                #bar_b.openInterest = tick.openInterest
+                
+                self.bar_b = bar_b                  # 这种写法为了减少一层访问，加快速度
+                self.barMinute_b = tickMinute     # 更新当前的分钟
+                
+            else:                               # 否则继续累加新的K线
+                bar_b = self.bar_b                  # 写法同样为了加快速度
+                
+                bar_b.high = max(bar_b.high, tick.lastPrice)
+                bar_b.low = min(bar_b.low, tick.lastPrice)
+                bar_b.close = tick.lastPrice
+
+
+
 
     #----------------------------------------------------------------------
     def onBar(self, bar):
@@ -134,10 +172,10 @@ class PairTradingDemo(CtaTemplate):
         print 'barSymbol:'+bar.vtSymbol+' barDateTime:'+bar.date+' '+bar.time+' barClose:'+str(bar.close) + ' openInterest:' + str(bar.openInterest)
 
         if bar.vtSymbol == self.vtSymbols[0]:
-                self.price_a = bar.close
+            self.price_a = bar.close
         if bar.vtSymbol == self.vtSymbols[1]:
             self.price_b = bar.close
-        
+
         # 当累积满一定数量的bar数据时候,进行交易逻辑的判断
         if self.counter > 2 * self.window:
 
