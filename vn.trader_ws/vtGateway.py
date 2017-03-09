@@ -30,6 +30,16 @@ class VtGateway(object):
         event2.dict_['data'] = tick
         self.eventEngine.put(event2)
     
+        # 常规行情事件 绘图
+        event3 = Event(type_=EVENT_MARKETDATA)
+        event3.dict_['data'] = tick
+        self.eventEngine.put(event3)
+        
+        # 特定合约行情事件 绘图
+        event4 = Event(type_=(EVENT_MARKETDATA_CONTRACT+tick.vtSymbol))
+        event4.dict_['data'] = tick
+        self.eventEngine.put(event4)
+
     #----------------------------------------------------------------------
     def onTrade(self, trade):
         """成交信息推送"""

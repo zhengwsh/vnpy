@@ -180,8 +180,8 @@ class PairTradingDemo(CtaTemplate):
         if self.counter > 2 * self.window:
 
             # 获取当天历史分钟线价格队列
-            price_array_a = self.bars_a[-self.window:]
-            price_array_b = self.bars_b[-self.window:]
+            price_array_a = np.array(self.bars_a[-self.window:])
+            price_array_b = np.array(self.bars_b[-self.window:])
 
             # 计算价差序列、其标准差、均值、上限、下限
             spread_array = price_array_a - self.ratio * price_array_b
@@ -201,7 +201,7 @@ class PairTradingDemo(CtaTemplate):
                 pbbq = bar.openInterest #self.getPositionLong(self.vtSymbols[1])  # 多头持仓
                 pbsq = bar.openInterest #self.getPositionShort(self.vtSymbols[1]) # 空头持仓
             
-            spread = self.price_a - self.ratio * self.price_b                
+            spread = self.price_a - self.ratio * self.price_b
 
             # operator------------------------------------
             # 所有的委托均以K线收盘价委托（这里有一个实盘中无法成交的风险，考虑添加对模拟市价单类型的支持）

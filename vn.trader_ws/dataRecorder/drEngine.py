@@ -37,7 +37,7 @@ class DrEngine(object):
         # 当前日期
         self.today = todayDate()
         
-        # 主力合约代码映射字典，key为具体的合约代码（如IF1604），value为主力合约代码（如IF0000）
+        # 主力合约代码映射字典，key为具体的合约代码（如IF1703），value为主力合约代码（如IF0000）
         self.activeSymbolDict = {}
         
         # Tick对象字典
@@ -100,17 +100,19 @@ class DrEngine(object):
                     req = VtSubscribeReq()
                     req.symbol = symbol                    
 
+                    # 针对LTS和IB接口，订阅行情需要交易所代码
                     if len(setting)>=3:
                         req.exchange = setting[2]
                         vtSymbol = '.'.join([symbol, req.exchange])
 
+                    # 针对IB接口，订阅行情需要货币和产品类型
                     if len(setting)>=5:
                         req.currency = setting[3]
                         req.productClass = setting[4]                    
                     
                     self.mainEngine.subscribe(req, setting[1])  
                     
-                    bar = DrBarData() 
+                    bar = DrBarData()               # 该bar实例可以用于缓存部分数据（目前未使用）
                     self.barDict[vtSymbol] = bar
                     
             if 'active' in drSetting:
@@ -131,8 +133,8 @@ class DrEngine(object):
         """处理行情推送"""
         tick = event.dict_['data']
         vtSymbol = tick.vtSymbol
-
-        # 转化Tick格式
+        
+        # 转化Tick格式, 除日期字段外其他字段一致
         drTick = DrTickData()
         d = drTick.__dict__
         for key in d.keys():

@@ -30,9 +30,24 @@ EVENT_CTA_STRATEGY = 'eCtaStrategy.'    # CTA策略状态变化事件
 
 # 行情记录模块相关
 EVENT_DATARECORDER_LOG = 'eDataRecorderLog' # 行情记录日志更新事件
+EVENT_MARKETDATA = 'eMarketData'            # 行情推送事件
+EVENT_MARKETDATA_CONTRACT = 'eMarketData.'  # 特定合约的行情事件
 
 # Wind接口相关
 EVENT_WIND_CONNECTREQ = 'eWindConnectReq'   # Wind接口请求连接事件
+
+# 其他
+EVENT_TRADE = 'eTrade'                      # 成交推送事件
+EVENT_TRADE_CONTRACT = 'eTrade.'            # 特定合约的成交事件
+
+EVENT_ORDER = 'eOrder'                      # 报单推送事件
+EVENT_ORDER_ORDERREF = 'eOrder.'            # 特定报单号的报单事件
+
+EVENT_POSITION = 'ePosition'                # 持仓查询回报事件
+
+EVENT_INSTRUMENT = 'eInstrument'            # 合约查询回报事件
+EVENT_INVESTOR = 'eInvestor'                # 投资者查询回报事件
+EVENT_ACCOUNT = 'eAccount'                  # 账户查询回报事件
 
 
 #----------------------------------------------------------------------

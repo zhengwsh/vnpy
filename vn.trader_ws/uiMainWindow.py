@@ -36,24 +36,35 @@ class MainWindow(QtGui.QMainWindow):
     #----------------------------------------------------------------------
     def initCentral(self):
         """初始化中心区域"""
+        widgetTradingW, dockTradingW = self.createDock(TradingWidget, u'交易', QtCore.Qt.LeftDockWidgetArea)
+
         widgetMarketM, dockMarketM = self.createDock(MarketMonitor, u'行情', QtCore.Qt.RightDockWidgetArea)
+        widgetOrderM, dockOrderM = self.createDock(OrderMonitor, u'委托', QtCore.Qt.RightDockWidgetArea)
+        widgetPriceW, dockPriceW = self.createDock(PriceWidget, u'实时图', QtCore.Qt.RightDockWidgetArea)
+
         widgetLogM, dockLogM = self.createDock(LogMonitor, u'日志', QtCore.Qt.BottomDockWidgetArea)
         widgetErrorM, dockErrorM = self.createDock(ErrorMonitor, u'错误', QtCore.Qt.BottomDockWidgetArea)
         widgetTradeM, dockTradeM = self.createDock(TradeMonitor, u'成交', QtCore.Qt.BottomDockWidgetArea)
-        widgetOrderM, dockOrderM = self.createDock(OrderMonitor, u'委托', QtCore.Qt.RightDockWidgetArea)
+
         widgetPositionM, dockPositionM = self.createDock(PositionMonitor, u'持仓', QtCore.Qt.BottomDockWidgetArea)
         widgetAccountM, dockAccountM = self.createDock(AccountMonitor, u'资金', QtCore.Qt.BottomDockWidgetArea)
-        widgetTradingW, dockTradingW = self.createDock(TradingWidget, u'交易', QtCore.Qt.LeftDockWidgetArea)
+
         widgetDAILYM, dockDAILYM = self.createDock(DAILYMonitor, u'日行情', QtCore.Qt.BottomDockWidgetArea)
         widgetMINM, dockMINM = self.createDock(MINMonitor, u'分钟行情', QtCore.Qt.BottomDockWidgetArea)
         widgetTICKM, dockTICKM = self.createDock(TICKMonitor, u'分时行情', QtCore.Qt.BottomDockWidgetArea)
 
+        self.tabifyDockWidget(dockMarketM, dockOrderM)
+        self.tabifyDockWidget(dockMarketM, dockPriceW)
+
         self.tabifyDockWidget(dockTradeM, dockErrorM)
         self.tabifyDockWidget(dockTradeM, dockLogM)
+
         self.tabifyDockWidget(dockPositionM, dockAccountM)
+
         self.tabifyDockWidget(dockDAILYM, dockMINM)
         self.tabifyDockWidget(dockDAILYM, dockTICKM)
 
+        dockMarketM.raise_()
         dockTradeM.raise_()
         dockPositionM.raise_()
         dockDAILYM.raise_()
