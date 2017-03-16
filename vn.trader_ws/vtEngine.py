@@ -12,6 +12,7 @@ from vtGateway import *
 from vtFunction import loadMongoSetting
 
 from ctaAlgo.ctaEngine import CtaEngine
+from ctaBacktest.ctaBacktestEngine import CtaBacktestEngine
 from dataRecorder.drEngine import DrEngine
 from riskManager.rmEngine import RmEngine
 
@@ -41,9 +42,13 @@ class MainEngine(object):
 
         # 扩展模块
         self.ctaEngine = CtaEngine(self, self.eventEngine)
+        self.ctaBacktestEngine = CtaBacktestEngine(self,  self.eventEngine)
         self.drEngine = DrEngine(self, self.eventEngine)
         self.rmEngine = RmEngine(self, self.eventEngine)
-        
+
+        # 其他模块变量相关
+        self.symbolShown = ""
+
     #----------------------------------------------------------------------
     def initGateway(self):
         """初始化接口对象"""
@@ -192,7 +197,7 @@ class MainEngine(object):
             gateway.cancelOrder(cancelOrderReq)
         else:
             self.writeLog(u'接口不存在：%s' %gatewayName)        
-        
+    
     #----------------------------------------------------------------------
     def qryAccont(self, gatewayName):
         """查询特定接口的账户"""

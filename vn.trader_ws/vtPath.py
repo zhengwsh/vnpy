@@ -15,8 +15,12 @@ sys.path.append(ROOT_PATH)
 # 若各目录下存在同名文件可能导致异常，请注意测试
 MODULE_PATH = {}
 MODULE_PATH['CTA'] = os.path.join(ROOT_PATH, 'ctaAlgo')
+MODULE_PATH['BKT'] = os.path.join(ROOT_PATH, 'ctaAlgo\\stragery')
+MODULE_PATH['CTA'] = os.path.join(ROOT_PATH, 'ctaBacktest')
+MODULE_PATH['BKT'] = os.path.join(ROOT_PATH, 'ctaBacktest\\stragery')
 MODULE_PATH['RM'] = os.path.join(ROOT_PATH, 'riskManager')
 MODULE_PATH['DR'] = os.path.join(ROOT_PATH, 'dataRecorder')
+
 
 # 添加到环境变量中
 for path in MODULE_PATH.values():

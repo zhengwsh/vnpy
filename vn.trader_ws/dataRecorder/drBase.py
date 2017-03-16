@@ -13,10 +13,10 @@ sys.path.append('..')
 
 
 # 数据库名称
-SETTING_DB_NAME = 'VnTrader_Setting_Db'
-TICK_DB_NAME = 'VnTrader_Tick_Db'
-DAILY_DB_NAME = 'VnTrader_Daily_Db'
-MINUTE_DB_NAME = 'VnTrader_1Min_Db'
+SETTING_DB_NAME = 'InplusTrader_Setting_Db'
+TICK_DB_NAME = 'InplusTrader_Tick_Db'
+DAILY_DB_NAME = 'InplusTrader_Daily_Db'
+MINUTE_DB_NAME = 'InplusTrader_1Min_Db'
 
 
 # CTA引擎中涉及的数据类定义

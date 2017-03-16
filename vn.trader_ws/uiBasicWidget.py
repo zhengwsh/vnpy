@@ -4,7 +4,9 @@ import json
 import csv
 import os
 import numpy as np
+import subprocess
 from collections import OrderedDict
+from matplotlib.dates import date2num
 
 from PyQt4 import QtGui, QtCore
 import pyqtgraph as pg
@@ -934,9 +936,6 @@ class TradingWidget(QtGui.QFrame):
         self.eventEngine.unregister(EVENT_TICK + self.symbol, self.signal.emit)
         self.eventEngine.register(EVENT_TICK + vtSymbol, self.signal.emit)
 
-        self.eventEngine.unregister(EVENT_MARKETDATA_CONTRACT+self.symbol, self.signal.emit)
-        self.eventEngine.register(EVENT_MARKETDATA_CONTRACT+vtSymbol, self.signal.emit)
-
         # 订阅合约
         req = VtSubscribeReq()
         req.symbol = symbol
@@ -951,6 +950,7 @@ class TradingWidget(QtGui.QFrame):
 
         # 更新组件当前交易的合约
         self.symbol = vtSymbol
+        self.mainEngine.symbolShown = self.symbol
 
     #----------------------------------------------------------------------
     def updateTick(self, event):
@@ -1104,6 +1104,7 @@ class PriceWidget(QtGui.QWidget):
     barHigh = 0
     barLow = 0
     barClose = 0
+    barPreClose = 0
     barTime = None
     barOpenInterest = 0
     num = 0
@@ -1120,7 +1121,7 @@ class PriceWidget(QtGui.QWidget):
     initCompleted = False
     # 初始化时读取的历史数据的起始日期(可以选择外部设置)
     startDate = None
-    symbol = 'cu1705'
+    symbol = ""
 
     class CandlestickItem(pg.GraphicsObject):
         def __init__(self, data):
@@ -1159,22 +1160,23 @@ class PriceWidget(QtGui.QWidget):
         """Constructor"""
         super(PriceWidget, self).__init__(parent)
 
-        self.__eventEngine = eventEngine
-        self.__mainEngine = mainEngine
+        self.eventEngine = eventEngine
+        self.mainEngine = mainEngine
+        self.symbol = ""  # 显示的合约
         # MongoDB数据库相关
         self.__mongoConnected = False
         self.__mongoConnection = None
         self.__mongoTickDB = None
 
         # 调用函数
-        #self.__connectMongo()
-        self.initUi(startDate=None)
+        self.__connectMongo()
+        self.initUi()
         self.registerEvent()
 
     #----------------------------------------------------------------------
-    def initUi(self, startDate=None):
+    def initUi(self):
         """初始化界面"""
-        self.setWindowTitle(u'实时图')
+        self.setWindowTitle(u'合约' + self.symbol + u'实时图')
 
         self.vbl_1 = QtGui.QVBoxLayout()
         self.initplotTick()  # plotTick初始化
@@ -1194,7 +1196,7 @@ class PriceWidget(QtGui.QWidget):
 
     #----------------------------------------------------------------------
     def initplotTick(self):
-        """"""
+        """Tick"""
         self.pw1 = pg.PlotWidget(name='Plot1')
         self.vbl_1.addWidget(self.pw1)
         self.pw1.setRange(xRange=[-360, 0])
@@ -1226,7 +1228,7 @@ class PriceWidget(QtGui.QWidget):
 
     #----------------------------------------------------------------------
     def initplotTendency(self):
-        """"""
+        """趋势线"""
         self.pw3 = pg.PlotWidget(name='Plot3')
         self.vbl_2.addWidget(self.pw3)
         self.pw3.setDownsampling(mode='peak')
@@ -1310,7 +1312,7 @@ class PriceWidget(QtGui.QWidget):
 
     #----------------------------------------------------------------------
     def plotKline(self):
-        """K线图"""
+        """画K线图"""
         if self.initCompleted:
             # 均线
             self.curve5.setData(self.listfastEMA, pen=(255, 0, 0), name="Red curve")
@@ -1324,12 +1326,13 @@ class PriceWidget(QtGui.QWidget):
 
     #----------------------------------------------------------------------
     def plotTendency(self):
-        """"""
+        """画趋势线"""
         if self.initCompleted:
             self.curve7.setData(self.listOpenInterest, pen=(255, 255, 255), name="White curve")
 
     #----------------------------------------------------------------------
     def plotText(self):
+        """开平仓信号"""
         lenClose = len(self.listClose)
 
         if lenClose >= 5:                                       # Fractal Signal
@@ -1348,8 +1351,9 @@ class PriceWidget(QtGui.QWidget):
     def updateMarketData(self, event):
         """更新行情"""
         tick = event.dict_['data']
-
-        self.onTick(tick)  # tick数据更新
+        #print "marketData:             " +tick.symbol
+        if tick.symbol == self.symbol:
+            self.onTick(tick)  # tick数据更新
 
         # # 将数据插入MongoDB数据库，实盘建议另开程序记录TICK数据
         # self.__recordTick(data)
@@ -1506,10 +1510,76 @@ class PriceWidget(QtGui.QWidget):
             return None
 
     #----------------------------------------------------------------------
+    def updateView(self, cell=None):
+        """更新显示"""
+        if cell:
+            pos = cell.data
+            vtSymbol = pos.symbol
+        else:
+            vtSymbol = self.mainEngine.symbolShown
+
+        # tick图的相关参数、变量
+        self.listlastPrice = np.empty(1000)
+
+        self.fastMA = 0
+        self.midMA = 0
+        self.slowMA = 0
+        self.listfastMA = np.empty(1000)
+        self.listmidMA = np.empty(1000)
+        self.listslowMA = np.empty(1000)
+        self.tickFastAlpha = 0.0333    # 快速均线的参数,30
+        self.tickMidAlpha = 0.0167     # 中速均线的参数,60
+        self.tickSlowAlpha = 0.0083    # 慢速均线的参数,120
+
+        self.ptr = 0
+        self.ticktime = None  # tick数据时间
+
+        # K线图EMA均线的参数、变量
+        self.EMAFastAlpha = 0.0167    # 快速EMA的参数,60
+        self.EMASlowAlpha = 0.0083  # 慢速EMA的参数,120
+        self.fastEMA = 0        # 快速EMA的数值
+        self.slowEMA = 0        # 慢速EMA的数值
+        self.listfastEMA = []
+        self.listslowEMA = []
+
+        # K线缓存对象
+        self.barOpen = 0
+        self.barHigh = 0
+        self.barLow = 0
+        self.barClose = 0
+        self.barPreClose = 0
+        self.barTime = None
+        self.barOpenInterest = 0
+        self.num = 0
+
+        # 保存K线数据的列表对象
+        self.listBar = []
+        self.listClose = []
+        self.listHigh = []
+        self.listLow = []
+        self.listOpen = []
+        self.listOpenInterest = []
+
+        #删除原布局
+        for layout in [self.vbl_1, self.vbl_2]:
+            for i in reversed(range(layout.count())): 
+                layout.itemAt(i).widget().setParent(None)
+
+        self.initplotTick()  # plotTick初始化
+        self.initplotKline()  # plotKline初始化
+        self.initplotTendency()  # plot分时图的初始化
+
+        # 重新注册事件监听
+        self.signal.connect(self.updateMarketData)
+        self.eventEngine.unregister(EVENT_MARKETDATA_CONTRACT + self.symbol, self.signal.emit)
+        self.eventEngine.register(EVENT_MARKETDATA_CONTRACT + vtSymbol, self.signal.emit)
+        self.symbol = vtSymbol
+
+    #----------------------------------------------------------------------
     def registerEvent(self):
         """注册事件监听"""
         self.signal.connect(self.updateMarketData)
-        self.__eventEngine.register(EVENT_MARKETDATA, self.signal.emit)
+        self.eventEngine.register(EVENT_MARKETDATA_CONTRACT+self.symbol, self.signal.emit)
 
 
 ########################################################################
@@ -1599,7 +1669,43 @@ class ContractMonitor(BasicMonitor):
 ########################################################################
 class DAILYMonitor(BasicMonitor):
     """日线数据"""
+    signal = QtCore.pyqtSignal(type(Event()))
 
+    # 是否完成了历史数据的读取
+    initCompleted = False
+
+    # 保存K线数据的列表对象
+    listBar = []
+    listClose = []
+    listHigh = []
+    listLow = []
+    listOpen = []
+    listOpenInterest = []
+
+    # 初始化时读取的历史数据的起止日期(可以选择外部设置)
+    startDate = None
+    endDate = None
+    symbol = None
+
+    widgetDict = {}
+
+    ########################################################################
+    class DailyManager(QtGui.QWidget):
+        """管理组件"""
+        #----------------------------------------------------------------------
+        def __init__(self, symbol, parent=None):
+            """Constructor"""
+            QtGui.QWidget.__init__(self)
+            self.symbol = symbol
+            self.initUi()
+
+        #----------------------------------------------------------------------
+        def initUi(self):
+            """初始化界面"""
+            self.setWindowTitle(self.symbol + u'-日K')
+            self.vbl = QtGui.QVBoxLayout()
+            self.setLayout(self.vbl)
+            
     #----------------------------------------------------------------------
     def __init__(self, mainEngine, eventEngine, parent=None):
         """Constructor"""
@@ -1616,14 +1722,14 @@ class DAILYMonitor(BasicMonitor):
         """初始化界面"""
         labelSymbol = QtGui.QLabel(u'代码:')
         self.lineSymbol = QtGui.QLineEdit()      
-        self.lineSymbol.setText('600000')
+        self.lineSymbol.setText('IF0000')
 
         grid = QtGui.QGridLayout()
         grid.addWidget(labelSymbol, 0, 0)
 
         grid.addWidget(self.lineSymbol, 0, 1)
 
-        # 启动exe显示数据按钮
+        # 启动显示数据按钮
         buttonShowDaily = QtGui.QPushButton(u'显示日线数据')
 
         size = buttonShowDaily.sizeHint()
@@ -1641,14 +1747,74 @@ class DAILYMonitor(BasicMonitor):
         self.setLayout(vbox)
 
         # 关联
-        buttonShowDaily.clicked.connect(self.openExe)
-        self.lineSymbol.returnPressed.connect(self.openExe)
+        buttonShowDaily.clicked.connect(self.openExe) #show
+        self.lineSymbol.returnPressed.connect(self.openExe) #show
 
+    #----------------------------------------------------------------------
+    def show(self):
+        """读取数据并画图"""
+        self.symbol = str(self.lineSymbol.text())
 
-    def  openExe(self):
+        self.widgetDict['D'] = self.DailyManager(self.symbol)
+        self.widgetDict['D'].showMaximized()
+
+        self.initplotKline()  # plotKline初始化
+        
+        self.initHistoricalData(self.symbol)  # 读取历史数据
+
+    #----------------------------------------------------------------------
+    def initHistoricalData(self, symbol):
+        """初始历史数据"""
+        d = {}
+        cx = self.mainEngine.dbQuery(MINUTE_DB_NAME, symbol, d)
+
+        if cx:
+            for data in cx:
+                date = datetime.strptime(data['date'], "%Y%m%d")
+                n = date2num(date)
+                o = data['open']             # OHLC
+                h = data['high']
+                l = data['low']
+                c = data['close']
+                oi = data['openInterest']
+
+                self.listBar.append((n, o, c, l, h))
+                self.listOpen.append(o)
+                self.listClose.append(c)
+                self.listHigh.append(h)
+                self.listLow.append(l)
+                self.listOpenInterest.append(oi)
+
+        self.initCompleted = True    # 读取历史数据完成
+        print "initCompleted!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        self.plotKline()     # K线图
+
+    #----------------------------------------------------------------------
+    def initplotKline(self):
+        """Kline"""
+        self.widgetDict['D'].pw = pg.PlotWidget(name='PlotD')  # K线图
+        self.widgetDict['D'].vbl.addWidget(self.widgetDict['D'].pw)
+        self.widgetDict['D'].pw.setDownsampling(mode='peak')
+        self.widgetDict['D'].pw.setClipToView(True)
+
+        self.widgetDict['D'].candle = CandlestickItem(self.listBar)
+        self.widgetDict['D'].pw.addItem(self.widgetDict['D'].candle)
+
+    #----------------------------------------------------------------------
+    def plotKline(self):
+        """画K线图"""
+        if self.initCompleted:
+            # 画K线
+            self.widgetDict['D'].pw.removeItem(self.widgetDict['D'].candle)
+
+            self.widgetDict['D'].candle = CandlestickItem(self.listBar)
+            self.widgetDict['D'].pw.addItem(self.widgetDict['D'].candle)
+
+    #----------------------------------------------------------------------
+    def openExe(self):
         symbol = str(self.lineSymbol.text())
-        os.popen(r".\\dataViewer\\StockMonitor.exe " + symbol)
-   
+        subprocess.Popen(r".\\dataViewer\\StockMonitor.exe " + symbol)
+
 
 ########################################################################
 class MINMonitor(BasicMonitor):
@@ -1672,9 +1838,9 @@ class MINMonitor(BasicMonitor):
         labelSymbol = QtGui.QLabel(u'代码:')
         lableDay = QtGui.QLabel(u'日期:')
         self.lineSymbol = QtGui.QLineEdit()  
-        self.lineSymbol.setText('600000')
+        self.lineSymbol.setText('IF0000')
         self.lineDay = QtGui.QLineEdit()    
-        self.lineDay.setText('2017-02-20')
+        self.lineDay.setText('2010-04-19')
 
         grid = QtGui.QGridLayout()
         grid.addWidget(labelSymbol, 0, 0)
@@ -1707,7 +1873,7 @@ class MINMonitor(BasicMonitor):
     def  openExe(self):
         symbol = str(self.lineSymbol.text())
         date = str(self.lineDay.text())
-        os.popen(r".\\dataViewer\\StockMonitor.exe " + symbol + " " +date)
+        subprocess.Popen(r".\\dataViewer\\StockMonitor.exe " + symbol + " " +date)
 
 
 ########################################################################
@@ -1731,9 +1897,9 @@ class TICKMonitor(BasicMonitor):
         labelSymbol = QtGui.QLabel(u'代码:')
         lableDay = QtGui.QLabel(u'日期:')
         self.lineSymbol = QtGui.QLineEdit()  
-        self.lineSymbol.setText('600000')
+        self.lineSymbol.setText('IF0000')
         self.lineDay = QtGui.QLineEdit()    
-        self.lineDay.setText('2017-02-20')
+        self.lineDay.setText('2010-04-19')
 
         grid = QtGui.QGridLayout()
         grid.addWidget(labelSymbol, 0, 0)
@@ -1766,7 +1932,7 @@ class TICKMonitor(BasicMonitor):
     def  openExe(self):
         symbol = str(self.lineSymbol.text())
         date = str(self.lineDay.text())
-        os.popen(r".\\dataViewer\\StockMonitor.exe " + symbol + " " +date)
+        subprocess.Popen(r".\\dataViewer\\StockMonitor.exe " + symbol + " " +date)
 
 
 ########################################################################
@@ -1817,3 +1983,35 @@ class Tick:
         self.askVolume5 = 0
 
 
+########################################################################
+class CandlestickItem(pg.GraphicsObject):
+    def __init__(self, data):
+        pg.GraphicsObject.__init__(self)
+        self.data = data  ## data must have fields: time, open, close, min, max
+        self.generatePicture()
+
+    def generatePicture(self):
+        ## pre-computing a QPicture object allows paint() to run much more quickly,
+        ## rather than re-drawing the shapes every time.
+        self.picture = QtGui.QPicture()
+        p = QtGui.QPainter(self.picture)
+        p.setPen(pg.mkPen(color='r', width=0.4))  # 0.4 means w*2
+        # w = (self.data[1][0] - self.data[0][0]) / 3.
+        w = 0.2
+        for (t, open, close, min, max) in self.data:
+            p.drawLine(QtCore.QPointF(t, min), QtCore.QPointF(t, max))
+            if open > close:
+                p.setBrush(pg.mkBrush('g'))
+            else:
+                p.setBrush(pg.mkBrush('r'))
+            p.drawRect(QtCore.QRectF(t-w, open, w*2, close-open))
+        p.end()
+
+    def paint(self, p, *args):
+        p.drawPicture(0, 0, self.picture)
+
+    def boundingRect(self):
+        ## boundingRect _must_ indicate the entire area that will be drawn on
+        ## or else we will get artifacts and possibly crashing.
+        ## (in this case, QPicture does all the work of computing the bouning rect for us)
+        return QtCore.QRectF(self.picture.boundingRect())

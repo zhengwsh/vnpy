@@ -4,6 +4,7 @@ import psutil
 
 from uiBasicWidget import *
 from ctaAlgo.uiCtaWidget import CtaEngineManager
+from ctaBacktest.uiCtaBktWidget import CtaBacktestEngineManager
 from dataRecorder.uiDrWidget import DrEngineManager
 from riskManager.uiRmWidget import RmEngineManager
 
@@ -71,7 +72,9 @@ class MainWindow(QtGui.QMainWindow):
     
         # 连接组件之间的信号
         widgetPositionM.itemDoubleClicked.connect(widgetTradingW.closePosition)
-        
+        widgetPositionM.itemDoubleClicked.connect(widgetPriceW.updateView)
+        widgetTradingW.lineSymbol.returnPressed.connect(widgetPriceW.updateView)
+
         # 保存默认设置
         self.saveWindowSettings('default')
         
@@ -81,38 +84,34 @@ class MainWindow(QtGui.QMainWindow):
         # 创建菜单
         menubar = self.menuBar()
         
-        # 设计为只显示存在的接口
+        # 接口数据库相关
         sysMenu = menubar.addMenu(u'系统')
         self.addConnectAction(sysMenu, 'CTP')
-        self.addConnectAction(sysMenu, 'LTS')
-        self.addConnectAction(sysMenu, 'XTP')
-        self.addConnectAction(sysMenu, 'FEMAS', u'飞马')
-        self.addConnectAction(sysMenu, 'XSPEED', u'飞创')
-        self.addConnectAction(sysMenu, 'QDP')
-        self.addConnectAction(sysMenu, 'KSOTP', u'金仕达期权')
-        self.addConnectAction(sysMenu, 'KSGOLD', u'金仕达黄金')
-        self.addConnectAction(sysMenu, 'SGIT', u'飞鼠')
-        sysMenu.addSeparator()
-        self.addConnectAction(sysMenu, 'IB')
-        self.addConnectAction(sysMenu, 'SHZD', u'直达')
-        self.addConnectAction(sysMenu, 'OANDA')
-        self.addConnectAction(sysMenu, 'OKCOIN')     
-        sysMenu.addSeparator()
-        self.addConnectAction(sysMenu, 'Wind')
-        
         sysMenu.addSeparator()
         sysMenu.addAction(self.createAction(u'连接数据库', self.mainEngine.dbConnect))
         sysMenu.addSeparator()
         sysMenu.addAction(self.createAction(u'退出', self.close))
-        
-        functionMenu = menubar.addMenu(u'功能')
-        functionMenu.addAction(self.createAction(u'查询合约', self.openContract))
-        functionMenu.addAction(self.createAction(u'行情记录', self.openDr))
-        functionMenu.addAction(self.createAction(u'风控管理', self.openRm))
-        
+
+        # 数据相关
+        dataMenu = menubar.addMenu(u'数据')
+        dataMenu.addAction(self.createAction(u'行情记录', self.openDr))
+
         # 算法相关
-        algoMenu = menubar.addMenu(u'算法')
+        algoMenu = menubar.addMenu(u'实盘')
         algoMenu.addAction(self.createAction(u'CTA策略', self.openCta))
+        
+        # 回测相关
+        backtestMenu = menubar.addMenu(u'回测')
+        backtestMenu.addAction(self.createAction(u'期货回测', self.openBacktest))
+
+        # 风控相关
+        riskMenu = menubar.addMenu(u'风控')
+        riskMenu.addAction(self.createAction(u'风控管理', self.openRm))
+
+        # 其他功能
+        functionMenu = menubar.addMenu(u'其他功能')
+        functionMenu.addAction(self.createAction(u'查询合约', self.openContract))
+        functionMenu.addAction(self.createAction(u'AI投顾', self.openAI)) # to be implemented
         
         # 帮助
         helpMenu = menubar.addMenu(u'帮助')
@@ -204,7 +203,15 @@ class MainWindow(QtGui.QMainWindow):
         except KeyError:
             self.widgetDict['ctaM'] = CtaEngineManager(self.mainEngine.ctaEngine, self.eventEngine)
             self.widgetDict['ctaM'].showMaximized()
-            
+    
+    #----------------------------------------------------------------------
+    def openBacktest(self):
+        try:
+            self.widgetDict['bktM'].showMaximized()
+        except KeyError:
+            self.widgetDict['bktM'] = CtaBacktestEngineManager(self.mainEngine.ctaBacktestEngine, self.eventEngine)
+            self.widgetDict['bktM'].showMaximized()
+    
     #----------------------------------------------------------------------
     def openDr(self):
         """打开行情数据记录组件"""
@@ -223,6 +230,10 @@ class MainWindow(QtGui.QMainWindow):
             self.widgetDict['rmM'] = RmEngineManager(self.mainEngine.rmEngine, self.eventEngine)
             self.widgetDict['rmM'].show()      
     
+    #----------------------------------------------------------------------
+    def openAI(self):
+        pass
+
     #----------------------------------------------------------------------
     def closeEvent(self, event):
         """关闭事件"""
@@ -298,9 +309,14 @@ class AboutWidget(QtGui.QDialog):
         self.setWindowTitle(u'关于InplusTrader')
 
         text = u"""
-            Developed by Traders, for Traders.
+            Developed by Vinson Zheng.
 
             License：MIT
+            
+            Website：inpluslab.sysu.edu.cn
+
+            Github：www.github.com/zhengwsh/vnpy
+
             """
 
         label = QtGui.QLabel()

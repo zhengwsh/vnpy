@@ -22,13 +22,11 @@ class CtaTemplate(object):
     # 策略的基本参数
     name = EMPTY_UNICODE           # 策略实例名称
     vtSymbols = EMPTY_LIST        # 交易的合约vt系统代码(可设置多个合约，存放于List中)    
-    productClass = EMPTY_STRING    # 产品类型（只有IB接口需要）
-    currency = EMPTY_STRING        # 货币（只有IB接口需要）
-    
+
     # 策略的基本变量，由引擎管理
     inited = False                 # 是否进行了初始化
     trading = False                # 是否启动交易，由引擎管理
-    pos = 0                        # 持仓情况
+    pos = EMPTY_DICT               # 各合约持仓情况, 通过vtSymbol映射！！！ pos['cu1704']["long"]
     
     # 参数列表，保存了参数的名称
     paramList = ['name',
@@ -88,6 +86,7 @@ class CtaTemplate(object):
         """收到Bar推送（必须由用户继承实现）"""
         raise NotImplementedError
     
+
     #----------------------------------------------------------------------
     def buy(self, vtSymbol, price, volume, stop=False):
         """买开"""
@@ -164,34 +163,23 @@ class CtaTemplate(object):
     def putEvent(self):
         """发出策略状态变化事件"""
         self.ctaEngine.putStrategyEvent(self.name)
-        
+    
     #----------------------------------------------------------------------
     def getEngineType(self):
         """查询当前运行的环境"""
         return self.ctaEngine.engineType
     
     #----------------------------------------------------------------------
-    def getDirection(self,  vtSymbol):
-        """查询持仓方向"""
-        print self.ctaEngine.mainEngine.qryPosition('CTP')
-        return self.ctaEngine.mainEngine.qryPosition('CTP')
-
-    #----------------------------------------------------------------------
-    def getPositionLong(self,  vtSymbol):
+    def getPositionLong(self, vtSymbol):
         """查询多头持仓仓位"""
-        position = event.dict_['data'].__getattribute__('position')
-        if self.getDirection(vtSymbol) == 1:
-            if self.ctaEngine.mainEngine.qryPosition('CTP') != 0:
-                return self.ctaEngine.mainEngine.qryPosition('CTP')
-            else:
-                return 0
+        return self.pos[vtSymbol]["long"]
 
     #----------------------------------------------------------------------
-    def getPositionShort(self,  vtSymbol):
+    def getPositionShort(self, vtSymbol):
         """查询空头持仓仓位"""
-        position = event.dict_['data'].__getattribute__('position')
-        if self.getDirection(vtSymbol) == 2:
-            if self.ctaEngine.mainEngine.qryPosition('CTP') != 0:
-                return self.ctaEngine.mainEngine.qryPosition('CTP')
-            else:
-                return 0
+        return self.pos[vtSymbol]["short"]
+    
+    #----------------------------------------------------------------------
+    def setPosition(self, vtSymbol, longPosition, shortPosition):
+        """持仓仓位"""
+        self.pos[vtSymbol] = {"long":longPosition, "short":shortPosition}

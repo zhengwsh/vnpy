@@ -2,7 +2,7 @@
 
 '''一个简单的通联数据客户端，主要使用requests开发，比通联官网的python例子更为简洁。'''
 
-
+import os,sys
 import requests
 import json
 
@@ -32,8 +32,8 @@ class DatayesClient(object):
         """载入配置"""
         try:
             path = os.path.abspath(os.path.dirname(__file__))
-            FILENAME = os.path.join(path, FILENAME)            
-            f = file(FILENAME)
+            FILEPATH = os.path.join(path, FILENAME)            
+            f = file(FILEPATH)
         except IOError:
             print u'%s无法打开配置文件' % self.name
             return

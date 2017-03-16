@@ -87,7 +87,7 @@ class BacktestingEngine(object):
         self.dt = None      # 最新的时间
         
     #----------------------------------------------------------------------
-    def setStartDate(self, startDate='20100416', initDays=10):
+    def setStartDate(self, startDate='20160101', initDays=10):
         """设置回测的启动日期"""
         self.startDate = startDate
         self.initDays = initDays

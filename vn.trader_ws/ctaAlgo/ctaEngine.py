@@ -24,6 +24,7 @@ from datetime import datetime, timedelta
 
 from ctaBase import *
 from ctaSetting import STRATEGY_CLASS
+#from strategy import STRATEGY_CLASS
 from eventEngine import *
 from vtConstant import *
 from vtGateway import VtSubscribeReq, VtOrderReq, VtCancelOrderReq, VtLogData
@@ -72,10 +73,8 @@ class CtaEngine(object):
         # key为vtSymbol，value为PositionBuffer对象
         self.posBufferDict = {}
         
-        ###################################################################
         # 引擎类型为实盘
         self.engineType = ENGINETYPE_TRADING
-        ###################################################################
         
         # 注册事件监听
         self.registerEvent()
@@ -90,10 +89,7 @@ class CtaEngine(object):
         req.exchange = contract.exchange
         req.price = price
         req.volume = volume
-        
-        req.productClass = strategy.productClass
-        req.currency = strategy.currency        
-        
+
         # 设计为CTA引擎发出的委托只允许使用限价单
         req.priceType = PRICETYPE_LIMITPRICE    
         
@@ -278,11 +274,15 @@ class CtaEngine(object):
         if trade.vtOrderID in self.orderStrategyDict:
             strategy = self.orderStrategyDict[trade.vtOrderID]
             
+            if trade.vtSymbol not in strategy.pos:
+                strategy.pos[trade.vtSymbol]["long"] = 0
+                strategy.pos[trade.vtSymbol]["short"] = 0
+
             # 计算策略持仓
             if trade.direction == DIRECTION_LONG:
-                strategy.pos += trade.volume
+                strategy.pos[trade.vtSymbol]["long"] += trade.volume
             else:
-                strategy.pos -= trade.volume
+                strategy.pos[trade.vtSymbol]["short"] += trade.volume
             
             self.callStrategyFunc(strategy, strategy.onTrade, trade)
             
@@ -308,7 +308,16 @@ class CtaEngine(object):
                 posBuffer.vtSymbol = pos.vtSymbol
                 self.posBufferDict[pos.vtSymbol] = posBuffer
             posBuffer.updatePositionData(pos)
-    
+
+            for strategy in self.tickStrategyDict.get(pos.vtSymbol, None):
+                strategy.pos[pos.vtSymbol] = {"long":posBuffer.longPosition, "short":posBuffer.shortPosition}
+
+        """更新策略各合约持仓"""
+        for strategy in self.strategyDict.values():
+            for vtSymbol in strategy.vtSymbols:
+                posBuffer = self.posBufferDict.get(vtSymbol, None)
+                strategy.pos[vtSymbol] = {"long":posBuffer.longPosition, "short":posBuffer.shortPosition}
+
     #----------------------------------------------------------------------
     def registerEvent(self):
         """注册事件监听"""
@@ -382,10 +391,9 @@ class CtaEngine(object):
             self.writeCtaLog(u'策略实例重名：%s' %name)
         else:
             # 创建策略实例
-            strategy = strategyClass(self, setting)  
+            strategy = strategyClass(self, setting)
             self.strategyDict[name] = strategy
             
-            # 多合约version
             for vtSymbol in strategy.vtSymbols:
                 # 保存Tick映射关系
                 if vtSymbol in self.tickStrategyDict:
@@ -394,17 +402,13 @@ class CtaEngine(object):
                     l = []
                     self.tickStrategyDict[vtSymbol] = l
                 l.append(strategy)
-            
+                
                 # 订阅合约
                 contract = self.mainEngine.getContract(vtSymbol)
                 if contract:
                     req = VtSubscribeReq()
                     req.symbol = contract.symbol
                     req.exchange = contract.exchange
-                    
-                    # 对于IB接口订阅行情时所需的货币和产品类型，从策略属性中获取
-                    req.currency = strategy.currency
-                    req.productClass = strategy.productClass
                     
                     self.mainEngine.subscribe(req, contract.gatewayName)
                 else:
@@ -482,6 +486,7 @@ class CtaEngine(object):
             for setting in l:
                 self.loadStrategy(setting)
                 
+        self.initPosition()
         self.loadPosition()
     
     #----------------------------------------------------------------------
@@ -543,10 +548,10 @@ class CtaEngine(object):
         """保存所有策略的持仓情况到数据库"""
         for strategy in self.strategyDict.values():
             flt = {'name': strategy.name,
-                   'vtSymbol': strategy.vtSymbol}
+                   'vtSymbols': strategy.vtSymbols}
             
             d = {'name': strategy.name,
-                 'vtSymbol': strategy.vtSymbol,
+                 'vtSymbols': strategy.vtSymbols,
                  'pos': strategy.pos}
             
             self.mainEngine.dbUpdate(POSITION_DB_NAME, strategy.className,
@@ -560,13 +565,26 @@ class CtaEngine(object):
         """从数据库载入策略的持仓情况"""
         for strategy in self.strategyDict.values():
             flt = {'name': strategy.name,
-                   'vtSymbol': {"$in":strategy.vtSymbols}}
+                   'vtSymbols': strategy.vtSymbols}
             posData = self.mainEngine.dbQuery(POSITION_DB_NAME, strategy.className, flt)
             
             for d in posData:
                 strategy.pos = d['pos']
 
-
+    #----------------------------------------------------------------------
+    def initPosition(self):
+        """查询并初始化策略各合约持仓"""
+        for strategy in self.strategyDict.values():
+            for vtSymbol in strategy.vtSymbols:
+                # 查询持仓缓存数据
+                posBuffer = self.posBufferDict.get(vtSymbol, None)
+                if not posBuffer:
+                    posBuffer = PositionBuffer()
+                    posBuffer.vtSymbol = vtSymbol
+                    self.posBufferDict[vtSymbol] = posBuffer
+                strategy.setPosition(vtSymbol, posBuffer.longPosition, posBuffer.shortPosition)
+            #print strategy.name + str(strategy.pos)
+        
 ########################################################################
 class PositionBuffer(object):
     """持仓缓存信息（本地维护的持仓数据）"""

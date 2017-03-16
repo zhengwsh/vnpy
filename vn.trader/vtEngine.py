@@ -145,8 +145,8 @@ class MainEngine(object):
             self.addGateway(OkcoinGateway, 'OKCOIN')
             self.gatewayDict['OKCOIN'].setQryEnabled(True)
         except Exception, e:
-            print e        
-
+            print e
+            
     #----------------------------------------------------------------------
     def addGateway(self, gateway, gatewayName=None):
         """创建接口"""

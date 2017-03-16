@@ -5,7 +5,7 @@
 1. 从通联数据下载历史行情的引擎
 2. 用来把MultiCharts导出的历史数据载入到MongoDB中用的函数
 """
-
+import os,sys
 from datetime import datetime, timedelta
 import pymongo
 from time import time
@@ -33,7 +33,7 @@ class HistoryDataEngine(object):
     #----------------------------------------------------------------------
     def __init__(self):
         """Constructor"""
-        host, port = loadMongoSetting()
+        host, port, logging = loadMongoSetting()
         
         self.dbClient = pymongo.MongoClient(host, port)
         self.datayesClient = DatayesClient()
@@ -322,7 +322,7 @@ def loadMcCsv(fileName, dbName, symbol):
     print u'开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol)
     
     # 锁定集合，并创建索引
-    host, port = loadMongoSetting()
+    host, port, logging = loadMongoSetting()
     
     client = pymongo.MongoClient(host, port)    
     collection = client[dbName][symbol]
@@ -352,10 +352,12 @@ def loadMcCsv(fileName, dbName, symbol):
 
 if __name__ == '__main__':
     ## 简单的测试脚本可以写在这里
-    #from time import sleep
-    #e = HistoryDataEngine()
-    #sleep(1)
+    from time import sleep
+    e = HistoryDataEngine()
+    sleep(1)
+    e.downloadFuturesSymbol("20170303")
+    e.downloadAllFuturesDailyBar()
     #e.downloadEquityDailyBar('000001')
     
     # 这里将项目中包含的股指日内分钟线csv导入MongoDB，作者电脑耗时大约3分钟
-    loadMcCsv('IF0000_1min.csv', MINUTE_DB_NAME, 'IF0000')
+    #loadMcCsv('IF0000_1min.csv', MINUTE_DB_NAME, 'IF0000')

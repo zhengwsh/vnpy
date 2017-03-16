@@ -1,8 +1,14 @@
 [
     {
-        "name": "pair trading",
-        "className": "PairTradingDemo",
+    	"name": "ema",
+        "className": "EmaDemoStrategy",
         "author": "Vinson Zheng",
-        "vtSymbols": [ "ag1712", "cu1704" ]
+        "vtSymbols": [ "cu1705" ]
+    },
+    {
+    	"name": "pair trading",
+        "className": "strategyPairTrading",
+        "author": "Vinson Zheng",
+        "vtSymbols": [ "rb1705" , "bu1705"]
     }
 ]

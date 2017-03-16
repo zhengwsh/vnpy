@@ -43,9 +43,15 @@ class CtaValueMonitor(QtGui.QTableWidget):
             col = 0
             for k, v in data.items():
                 if k == 'vtSymbols':
-                    cell = QtGui.QTableWidgetItem(', '.join(v))
+                    cell = QtGui.QTableWidgetItem('; '.join(v))
+                elif k == 'pos':
+                    poses = ""
+                    for sym in v:
+                        poses += sym + ":long:"+ str(v[sym]["long"])+",short:"+str(v[sym]["short"])+"; "
+                    cell = QtGui.QTableWidgetItem(poses)
                 else:
                     cell = QtGui.QTableWidgetItem(unicode(v))
+
                 self.keyCellDict[k] = cell
                 self.setItem(0, col, cell)
                 col += 1
@@ -55,7 +61,12 @@ class CtaValueMonitor(QtGui.QTableWidget):
             for k, v in data.items():
                 cell = self.keyCellDict[k]
                 if k == 'vtSymbols':
-                    cell.setText(', '.join(v))
+                    cell.setText('; '.join(v))
+                elif k == 'pos':
+                    poses = ""
+                    for sym in v:
+                        poses += sym + ":long:"+ str(v[sym]["long"])+",short:"+str(v[sym]["short"])+"; "
+                    cell.setText(poses)
                 else:
                     cell.setText(unicode(v))
 
@@ -125,7 +136,7 @@ class CtaStrategyManager(QtGui.QGroupBox):
             
         varDict = self.ctaEngine.getStrategyVar(self.name)
         if varDict:
-            self.varMonitor.updateData(varDict)        
+            self.varMonitor.updateData(varDict)    
             
     #----------------------------------------------------------------------
     def registerEvent(self):
@@ -176,12 +187,14 @@ class CtaEngineManager(QtGui.QWidget):
         self.setWindowTitle(u'CTA策略')
         
         # 按钮
+        newButton = QtGui.QPushButton(u'新建策略')
         loadButton = QtGui.QPushButton(u'加载策略')
         initAllButton = QtGui.QPushButton(u'全部初始化')
         startAllButton = QtGui.QPushButton(u'全部启动')
         stopAllButton = QtGui.QPushButton(u'全部停止')
         savePositionButton = QtGui.QPushButton(u'保存持仓')
         
+        newButton.clicked.connect(self.new)
         loadButton.clicked.connect(self.load)
         initAllButton.clicked.connect(self.initAll)
         startAllButton.clicked.connect(self.startAll)
@@ -199,6 +212,7 @@ class CtaEngineManager(QtGui.QWidget):
         
         # 设置布局
         hbox2 = QtGui.QHBoxLayout()
+        hbox2.addWidget(newButton)
         hbox2.addWidget(loadButton)
         hbox2.addWidget(initAllButton)
         hbox2.addWidget(startAllButton)
@@ -255,6 +269,10 @@ class CtaEngineManager(QtGui.QWidget):
             self.ctaEngine.writeCtaLog(u'策略加载成功')
         
     #----------------------------------------------------------------------
+    def new(self):
+        self.ctaEngine.writeCtaLog(u'策略新建成功')
+
+    #----------------------------------------------------------------------
     def updateCtaLog(self, event):
         """更新CTA相关日志"""
         log = event.dict_['data']
@@ -268,12 +286,6 @@ class CtaEngineManager(QtGui.QWidget):
         self.eventEngine.register(EVENT_CTA_LOG, self.signal.emit)
         
         
-    
-    
-    
-    
-
-
 
     
     

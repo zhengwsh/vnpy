@@ -355,9 +355,9 @@ if __name__ == '__main__':
     from time import sleep
     e = HistoryDataEngine()
     sleep(1)
-    e.downloadFuturesSymbol("20170303")
-    e.downloadAllFuturesDailyBar()
+    #e.downloadFuturesSymbol("20170303")
+    #e.downloadAllFuturesDailyBar()
     #e.downloadEquityDailyBar('000001')
     
     # 这里将项目中包含的股指日内分钟线csv导入MongoDB，作者电脑耗时大约3分钟
-    #loadMcCsv('IF0000_1min.csv', MINUTE_DB_NAME, 'IF0000')
+    loadMcCsv('IF0000_1min.csv', MINUTE_DB_NAME, 'IF0000')

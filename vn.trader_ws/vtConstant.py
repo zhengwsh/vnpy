@@ -3,6 +3,7 @@
 # 默认空值
 EMPTY_STRING = ''
 EMPTY_LIST = []
+EMPTY_DICT = {}
 EMPTY_UNICODE = u''
 EMPTY_INT = 0
 EMPTY_FLOAT = 0.0
@@ -84,4 +85,11 @@ CURRENCY_UNKNOWN = 'UNKNOWN'    # 未知货币
 CURRENCY_NONE = ''              # 空货币
 
 # 数据库
-LOG_DB_NAME = 'VnTrader_Log_Db'
+LOG_DB_NAME = 'InplusTrader_Log_Db'
+
+SETTING_DB_NAME = 'InplusTrader_Setting_Db'
+POSITION_DB_NAME = 'InplusTrader_Position_Db'
+
+TICK_DB_NAME = 'InplusTrader_Tick_Db'
+DAILY_DB_NAME = 'InplusTrader_Daily_Db'
+MINUTE_DB_NAME = 'InplusTrader_1Min_Db'
