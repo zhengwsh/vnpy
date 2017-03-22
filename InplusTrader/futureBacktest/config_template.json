@@ -1,0 +1,87 @@
+{
+    "base": {
+        "run_id": 9999,
+        "strategy_file": "",
+        "start_date": "2016-01-01",
+        "end_date": "2016-06-01",
+        "future_starting_cash": 1000000,
+        "strategy_type": "future",
+        "run_type": "b",
+        "frequency": "1d",
+        "matching_type": "current_bar",
+        "benchmark": null,
+        "slippage": 0.05,
+        "commission_multiplier": 1,
+        "margin_multiplier": 1,
+        "resume_mode": false,
+        "persist": false,
+        "persist_mode": "real_time",
+        "handle_split": false
+    },
+    "extra": {
+        "log_level": "verbose",
+        "user_system_log_disabled": false,
+        "context_vars": false,
+        "force_run_init_when_pt_resume": false,
+        "enable_profiler": false,
+        "is_hold": false
+    },
+    "validator": {
+        "cash_return_by_stock_delisted": false,
+        "close_amount": true,
+        "bar_limit": true
+    },
+    "mod": {
+        "inplus_trader_backtest": {
+            "lib": "rqalpha.mod.inplus_trader_backtest",
+            "enabled": true,
+            "mongo": "172.18.181.119",
+            "priority": 100
+        },
+        "simulation": {
+            "lib": "rqalpha.mod.simulation",
+            "enabled": false,
+            "priority": 100
+        },
+        "funcat_api": {
+            "lib": "rqalpha.mod.funcat_api",
+            "enabled": false,
+            "priority": 200
+        },
+        "progress": {
+            "lib": "rqalpha.mod.progress",
+            "enabled": false,
+            "priority": 400
+        },
+        "simple_stock_realtime_trade": {
+            "lib": "rqalpha.mod.simple_stock_realtime_trade",
+            "persist_path": ".\\persist\\strategy\\",
+            "fps": 3,
+            "enabled": false,
+            "priority": 500
+        },
+        "progressive_output_csv": {
+            "lib": "rqalpha.mod.progressive_output_csv",
+            "enabled": false,
+            "output_path": "",
+            "priority": 600
+        },
+        "risk_manager": {
+            "lib": "rqalpha.mod.risk_manager",
+            "enabled": false,
+            "priority": 700,
+            "available_cash": true,
+            "available_position": true
+        },
+        "analyser": {
+            "priority": 100,
+            "enabled": true,
+            "lib": "rqalpha.mod.analyser",
+            "record": true,
+            "output_file": "",
+            "plot": "",
+            "plot_save_file": "",
+            "report_save_path": ""
+        }
+    }
+}
